@@ -93,6 +93,21 @@ npm install
 make
 ```
 
+# Debugging the tests
+
+1) install node-inspector and then open 2 console windows. In the first run:
+```
+node-inspector
+```
+2) And in the second:
+```
+./node_modules/.bin/mocha --reporter spec test/specs.js --debug-brk
+```
+3) In google chrome go to: http://0.0.0.0:8080/debug?port=5858. The debugger will have stopped in mocha's internal file -
+put a breakpoint on the last line of the file and then let it run.  Once it has hit the breakpoint wait a second or 2
+while it updates the list of available scripts and then open spec.js
+
+
 ## Benchmarks
 
 You must have node installed in order to run the benchmarks.

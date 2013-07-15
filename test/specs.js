@@ -1,3 +1,5 @@
+
+
 /*global it, describe, before, beforeEach*/
 var _ = require('underscore')
   , assert = require('assert')
@@ -419,3 +421,76 @@ describe('Sieves dependant on an association', function () {
     assert.deepEqual(project_tasks.pluck('id'), [1, 3]);
   });
 });
+
+get_callbacks_for = function(event_name, on_object, context, callback) {
+ var found = 0;
+ var names, name, names_i, names_l, calls, call,  calls_i, calls_l;
+
+ if (event_name == '*' || _.isNull(event_name)) {
+     names = _.keys(on_object._events);
+ } else {
+     names = [event_name];
+ }
+
+ for (names_i = 0, names_l = names.length; names_i < names_l; names_i++) {
+   name = names[names_i];
+
+   calls = on_object._events[name] || [];
+   for (calls_i = 0, calls_l = calls.length; calls_i < calls_l; calls_i++) {
+     call = calls[calls_i];
+
+     if (context && call.context != context) {
+       continue;
+     }
+     if (callback && call.callback != callback) {
+       continue;
+     }
+     found = found + 1;
+   }
+ }
+
+ return found
+};
+
+describe('close method', function () {
+  var a_task = null;
+
+  before(function () {
+      tasks.reset();
+      project = new Models.Project({id: 1});
+      project_tasks = new Collections.ProjectTasks([], {project: project});
+      project_tasks.test_name = "close method"
+      for (var i = 0; i < 4; i++) {
+          project_tasks.add({id: i, project_id: i % 2, order: i});
+      }
+
+      a_task = project_tasks.at(0);
+  });
+
+  it('should be listening to the parent model', function () {
+    // this test is mostly to test get_callbacks_for is working as expected
+    // should be counting: add, remove, reset, all
+    assert.equal(get_callbacks_for('*', tasks, project_tasks), 4);        // add, remove, reset, all
+
+    assert.equal(project_tasks.length, 2);
+    assert.equal(get_callbacks_for('all',  a_task, project_tasks), 1);    // _onModelEvent
+  });
+
+  describe('close the subset', function () {
+      before(function () {
+          project_tasks.close();
+      });
+
+      it('should have stopped listening', function () {
+          assert.equal(get_callbacks_for('*', tasks, project_tasks), 0);     // add, remove, reset, all
+
+          // project_tasks should have released references to the parent collection and to the models
+          assert.equal(project_tasks.length, 0);
+          assert.equal(get_callbacks_for('all',  a_task, project_tasks), 0);    // _onModelEvent
+
+          // a_task should still be held by the parent collection
+          assert.equal(get_callbacks_for('all',  a_task, tasks), 1);
+      });
+  });
+});
+

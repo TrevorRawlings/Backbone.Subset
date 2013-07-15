@@ -43,18 +43,16 @@
     this.comparator = this.comparator || options.comparator || parent.comparator;
     this.liveupdate_keys = this.liveupdate_keys || options.liveupdate_keys || 'none';
 
-    _.bindAll(this, '_onModelEvent', '_unbindModelEvents', '_proxyAdd'
-              , '_proxyReset', '_proxyRemove', '_proxyChange');
+    _.bindAll(this, '_onModelEvent', '_unbindModelEvents');
 
-    parent.bind('add', this._proxyAdd);
-    parent.bind('remove', this._proxyRemove);
-    parent.bind('reset', this._proxyReset);
-    parent.bind('all', this._proxyChange);
+    parent.bind('add', this._proxyAdd, this);
+    parent.bind('remove', this._proxyRemove, this);
+    parent.bind('reset', this._proxyReset, this);
+    parent.bind('all', this._proxyChange, this);
 
     if (this.beforeInitialize) {
       this.beforeInitialize.apply(this, arguments);
     }
-
     this.models = [];
 
     if (!options.no_reset) {
@@ -358,6 +356,20 @@
     model.unbind('all', this._onModelEvent);
   };
 
-  _.extend(Backbone.Subset.prototype, Backbone.Collection.prototype, Subset);
+  Subset.close = function (option) {
+      var parent;
+
+      this.each(this._unbindModelEvents);
+      this._reset();
+
+      parent = _.result(this, 'parent');
+      parent.unbind('add', this._proxyAdd, this);
+      parent.unbind('remove', this._proxyRemove, this);
+      parent.unbind('reset', this._proxyReset, this);
+      parent.unbind('all', this._proxyChange, this);
+  };
+
+
+    _.extend(Backbone.Subset.prototype, Backbone.Collection.prototype, Subset);
   Backbone.Subset.extend = Backbone.Collection.extend;
 }());
